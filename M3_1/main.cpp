@@ -12,6 +12,7 @@ template <class T, class U>
 struct Node {
     T key;
     U priority;
+    Node<T,U> *parent;
     Node<T, U> *left;
     Node<T, U> *right;
 };
@@ -23,6 +24,7 @@ class Treap {
     void split(Node<T, U> *currentNode, U key, Node<T,U> *&, Node<T,U> *&);
     Node<T,U>* merge(Node<T,U> *left, Node<T,U> *right);
     Node<T, U>* found_in_treap(Node<T, U> *node, U priority);
+    void reroot(); //Поиск корректного root
 public:
     Treap(){root = nullptr; size = 0;}
     uint16_t getSize() {return size;}
@@ -34,6 +36,15 @@ public:
     void print(Node<T, U> *node = root);
 };
 
+template <class T, class U>
+void Treap<T, U>::reroot() {
+    if (root == nullptr) {
+        return;
+    }
+    while (root->parent != nullptr) {
+        root = root->parent;
+    }
+}
 template <class T, class U>
 void Treap<T, U>::split(Node<T, U> *currentNode, U key, Node<T,U> *&left, Node<T,U> *&right) {
     if (currentNode == nullptr) {
@@ -63,10 +74,12 @@ Node<T,U>* merge(Node<T,U> *left, Node<T,U> *right) {
     }
     if (left->priority > right->priority) {
         left->right = merge(left->right, right);
+        left->right->parent = left;
         return left;
     }
     else {
         right->left = merge(left, right->left);
+        right->left->parent = right;
         return right;
     }
 }
@@ -83,14 +96,6 @@ Node<T, U>* Treap<T, U>::found_in_treap(Node<T, U> *node, U priority) {
 }
 template<class T, class U>
 void Treap<T, U>::add(T key, U priority, Node<T, U>* node) {
-//    std::function<std::tuple<Node<T, U>*, Node<T, U>*>*(Node<T, U>*)> found_in_treap = [&found_in_treap, priority, node](Node<T, U>* node){
-//        if (node->priority >= priority) {
-////            found_in_treap(node->left);
-////            found_in_treap(node->right);
-//            return std::make_tuple(found_in_treap(node->left), found_in_treap(node->right));
-//        }
-//return node;
-//};
     Node<T, U>* found_node;
     found_node = found_in_treap(node, priority);
 //    Теперь добавляем элемент
@@ -102,11 +107,18 @@ void Treap<T, U>::add(T key, U priority, Node<T, U>* node) {
     creating_element->priority = priority;
     creating_element->left = left;
     creating_element->right = right;
-//    delete found_node;
     if (size == 0) {
+        creating_element->parent = nullptr;
         root = creating_element;
     }
+    if (left != nullptr) {
+        left->parent = creating_element;
+    }
+    if (right != nullptr) {
+        right->parent = creating_element;
+    }
     ++size;
+    reroot();
 }
 template<class T, class U>
 void Treap<T, U>::removetree() {
